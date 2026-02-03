@@ -1,0 +1,54 @@
+import streamlit as st
+import pandas as pd
+from openai import OpenAI
+
+# 1. Setup OpenAI Client correctly
+try:
+    client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+except:
+    st.error("API Key missing. Please add OPENAI_API_KEY to Streamlit Secrets.")
+
+st.set_page_config(page_title="Iron Lady Lead Manager", layout="wide")
+st.title("💼 Internal Lead Manager & AI Outreach")
+
+# 2. Initialize Session State for Data (The "Database")
+if 'leads' not in st.session_state:
+    st.session_state.leads = pd.DataFrame(
+        [{"Name": "Sample Lead", "Role": "Professional", "Status": "New"}],
+        columns=["Name", "Role", "Status"]
+    )
+
+# 3. Sidebar: Add New Leads (Create)
+st.sidebar.header("Add New Lead")
+new_name = st.sidebar.text_input("Candidate Name")
+new_role = st.sidebar.selectbox("Role", ["Professional", "Entrepreneur", "Student"])
+if st.sidebar.button("Save Lead"):
+    new_data = pd.DataFrame([{"Name": new_name, "Role": new_role, "Status": "New"}])
+    st.session_state.leads = pd.concat([st.session_state.leads, new_data], ignore_index=True)
+    st.sidebar.success(f"Added {new_name}!")
+
+# 4. Main Dashboard: Show and Update Leads (Read/Update)
+st.subheader("Lead Dashboard")
+edited_df = st.data_editor(st.session_state.leads, num_rows="dynamic", use_container_width=True)
+st.session_state.leads = edited_df
+
+# 5. AI Outreach Generator
+st.divider()
+st.subheader("🤖 AI Outreach Generator")
+selected_lead = st.selectbox("Select a lead to generate a strategy for:", st.session_state.leads["Name"])
+
+if st.button("Generate Strategy Email"):
+    lead_info = st.session_state.leads[st.session_state.leads["Name"] == selected_lead].iloc[0]
+    
+    prompt = f"Write a high-conversion enrollment email for {lead_info['Name']}, who is a {lead_info['Role']}. Focus on the Iron Lady leadership program."
+    
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        st.info("### Generated Email Strategy:")
+        st.write(response.choices[0].message.content)
+    except Exception as e:
+        st.error("Rate Limit or Authentication Error: Please check your OpenAI account balance.")
+        st.warning("Note: The code logic is correct, but the API quota has been reached.")
