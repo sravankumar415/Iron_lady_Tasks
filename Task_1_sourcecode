@@ -1,0 +1,43 @@
+import streamlit as st
+from openai import OpenAI
+
+# Page configuration for a professional look
+st.set_page_config(page_title="Iron Lady: Career PathFinder", layout="wide")
+
+# Setup OpenAI Client - Ensure 'api_key' is spelled correctly to avoid TypeErrors
+client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
+st.title("🛡️ Iron Lady: Career PathFinder & Enrollment AI")
+st.write("Helping women leaders find their path to unapologetic success.")
+
+# --- SIDEBAR: Input Section ---
+with st.sidebar:
+    st.header("Candidate Profile")
+    name = st.text_input("Candidate Name")
+    role = st.text_input("Current Role")
+    struggles = st.text_area("What are your career challenges?")
+    
+    generate_btn = st.button("Generate Career Path")
+
+# --- MAIN AREA: AI Analysis ---
+if generate_btn:
+    if not name or not struggles:
+        st.error("Please provide a name and challenges to continue.")
+    else:
+        with st.spinner("AI is analyzing your career trajectory..."):
+            # AI Prompt specifically for Task 1
+            prompt = f"The candidate {name} is a {role}. Her challenges are: {struggles}. Provide a powerful 3-step Iron Lady strategy and recommend the 'Business Warfare' program."
+            
+            response = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            # Display the AI results
+            st.success(f"Warrior Strategy for {name}")
+            st.markdown(response.choices[0].message.content)
+            
+            # Table to show 'Recorded Data' (CRUD element)
+            st.divider()
+            st.subheader("Session Log")
+            st.table([{"Candidate": name, "Current Role": role, "Status": "Strategy Delivered"}])
